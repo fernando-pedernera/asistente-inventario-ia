@@ -1,0 +1,28 @@
+# Entornos virtuales
+venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# DVC y Datos
+/data/raw/*
+/data/processed/*
+!/data/raw/.gitkeep
+!/data/processed/.gitkeep
+/models/*
+!/models/.gitkeep
+
+# MLflow
+mlruns/
+*.db
+
+# Docker
+.dockerignore
+
+# Notebooks
+.ipynb_checkpoints/
