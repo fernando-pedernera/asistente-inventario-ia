@@ -10,28 +10,28 @@ El núcleo de la solución es una API construida con **FastAPI**, la cual orques
 
 ```mermaid
 graph TD
-    A[Usuario / FrontEnd] -->|HTTP POST: Sube Imagen + Pregunta| B(FastAPI Endpoint: /analyze)
+    A["Usuario / FrontEnd"] -->|"HTTP POST: Sube Imagen + Pregunta"| B("FastAPI Endpoint: /analyze")
     
-    subgraph 1. Capa de Visión Computacional (CV)
-    B -->|Tensor de Imagen| C(Modelo YOLOv8)
-    C -->|Inferencia: Detección y Confianza| D{¿Se detecta el producto 'Taza'?}
+    subgraph CV ["1. Capa de Visión Computacional (CV)"]
+    B -->|"Tensor de Imagen"| C("Modelo YOLOv8")
+    C -->|"Inferencia: Detección y Confianza"| D{"¿Se detecta el producto 'Taza'?"}
     end
     
-    subgraph 2. Capa de NLP & RAG (Retrieval-Augmented Generation)
-    D -->|Sí (Confianza > umbral)| E[LangChain Orquestador RAG]
-    E -->|1. Transforma pregunta a Vector| F[(FAISS Vector Store)]
-    F -->|2. Retorna fragmentos de manuales| G(Google Gemini 1.5 Flash LLM)
-    G -->|3. Sintetiza respuesta basada en contexto| H[Respuesta Final]
+    subgraph RAG ["2. Capa de NLP & RAG"]
+    D -->|"Sí (Confianza > umbral)"| E["LangChain Orquestador RAG"]
+    E -->|"1. Transforma pregunta a Vector"| F[("FAISS Vector Store")]
+    F -->|"2. Retorna fragmentos de manuales"| G("Google Gemini 1.5 Flash LLM")
+    G -->|"3. Sintetiza respuesta"| H["Respuesta Final"]
     end
     
-    D -->|No (Confianza baja)| Z[Retorna: 'No se detectó el producto. Sube una foto válida.']
-    H --> I[Respuesta JSON al Usuario]
+    D -->|"No (Confianza baja)"| Z["Retorna: 'No se detectó el producto.'"]
+    H --> I["Respuesta JSON al Usuario"]
     Z --> I
     
-    subgraph 3. Capa de MLOps & Telemetría
-    I -.->|Extrae métricas| L[(inference_logs.csv)]
-    L -.->|Pruebas estadísticas (Ej: K-S Test)| M[EvidentlyAI Drift Monitor]
-    M -.->|Alerta de degradación| N[Data Science Team]
+    subgraph MLOPS ["3. Capa de MLOps & Telemetría"]
+    I -.->|"Extrae métricas"| L[("inference_logs.csv")]
+    L -.->|"Pruebas estadísticas"| M["EvidentlyAI Drift Monitor"]
+    M -.->|"Alerta de degradación"| N["Data Science Team"]
     end
 ```
 
