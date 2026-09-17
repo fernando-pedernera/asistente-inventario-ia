@@ -26,3 +26,8 @@ mlruns/
 
 # Notebooks
 .ipynb_checkpoints/
+
+# Archivos Pesados y Reportes
+*.pt
+runs/
+*.html

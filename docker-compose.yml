@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  api_inventario:
+    build: .
+    container_name: asisente_inventario_api
+    ports:
+      - "8000:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: always
