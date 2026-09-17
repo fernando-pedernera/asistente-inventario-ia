@@ -6,31 +6,52 @@ Este proyecto es un **Producto Mínimo Viable (MVP)** diseñado para demostrar u
 
 ## 🏗️ Arquitectura del Sistema
 
-La solución está construida sobre una API en **FastAPI** que actúa como orquestador entre el usuario, el modelo de visión y el modelo de lenguaje.
+El núcleo de la solución es una API construida con **FastAPI**, la cual orquesta un pipeline complejo de dos fases: Visión Artificial y Procesamiento de Lenguaje Natural (NLP). El objetivo de esta arquitectura es validar visualmente el contexto antes de proporcionar asistencia técnica.
 
 ```mermaid
 graph TD
-    A[Usuario / App] -->|Sube Imagen + Pregunta| B(FastAPI Endpoint /analyze)
+    A[Usuario / FrontEnd] -->|HTTP POST: Sube Imagen + Pregunta| B(FastAPI Endpoint: /analyze)
     
-    subgraph Computer Vision
-    B -->|Imagen| C(YOLOv8)
-    C -->|Detección de Objeto| D{¿Detecta Taza?}
+    subgraph 1. Capa de Visión Computacional (CV)
+    B -->|Tensor de Imagen| C(Modelo YOLOv8)
+    C -->|Inferencia: Detección y Confianza| D{¿Se detecta el producto 'Taza'?}
     end
     
-    subgraph NLP & RAG
-    D -->|Sí| E[LangChain RAG Pipeline]
-    E -->|Pregunta| F[(FAISS Vector Store)]
-    F -->|Documentos Relevantes| G(Google Gemini 1.5 Flash)
+    subgraph 2. Capa de NLP & RAG (Retrieval-Augmented Generation)
+    D -->|Sí (Confianza > umbral)| E[LangChain Orquestador RAG]
+    E -->|1. Transforma pregunta a Vector| F[(FAISS Vector Store)]
+    F -->|2. Retorna fragmentos de manuales| G(Google Gemini 1.5 Flash LLM)
+    G -->|3. Sintetiza respuesta basada en contexto| H[Respuesta Final]
     end
     
-    D -->|No| Z[Retorna: 'No se detectó el objeto']
-    G -->|Respuesta Generada| H[Retorna: JSON]
+    D -->|No (Confianza baja)| Z[Retorna: 'No se detectó el producto. Sube una foto válida.']
+    H --> I[Respuesta JSON al Usuario]
+    Z --> I
     
-    subgraph MLOps & Monitoreo
-    B -.->|Guarda métricas| L[(inference_logs.csv)]
-    L -.->|Reporte de Desviación| M[EvidentlyAI Drift Monitor]
+    subgraph 3. Capa de MLOps & Telemetría
+    I -.->|Extrae métricas| L[(inference_logs.csv)]
+    L -.->|Pruebas estadísticas (Ej: K-S Test)| M[EvidentlyAI Drift Monitor]
+    M -.->|Alerta de degradación| N[Data Science Team]
     end
 ```
+
+### Explicación Detallada de los Componentes
+
+#### 1. Capa de Visión Computacional (Filtro Visual)
+Antes de responder cualquier pregunta técnica, el sistema debe confirmar que el usuario está operando el producto correcto. 
+- Utilizamos **YOLOv8** (You Only Look Once), un modelo de estado del arte en detección de objetos en tiempo real. 
+- Fue entrenado de manera supervisada usando un conjunto de datos (aumentado geométricamente) gestionado a través de **Roboflow**. 
+- Si la imagen recibida no contiene una "Taza" (nuestro producto de inventario) con una confianza matemática predefinida, la petición se cancela. Esto ahorra cuotas (costos) de la API del LLM y evita alucinaciones del asistente.
+
+#### 2. Capa NLP con Arquitectura RAG
+Si el objeto es validado, el flujo ingresa a la capa semántica:
+- **Indexación Offline:** Los manuales técnicos en PDF (ej. instrucciones de cuidado) son procesados por LangChain. Se dividen en fragmentos lógicos (*Chunking*) y se convierten en vectores matemáticos usando **Embeddings de HuggingFace** (`all-MiniLM-L6-v2`). Estos se almacenan en una base de datos vectorial local (**FAISS**).
+- **Recuperación y Generación (Online):** La pregunta del usuario se vectoriza. FAISS calcula la distancia espacial (Similitud del Coseno) y recupera los párrafos exactos del manual que responden a la consulta. Estos párrafos se inyectan como "contexto estricto" al LLM (**Google Gemini**), obligándolo a responder basándose única y exclusivamente en los manuales de la empresa.
+
+#### 3. Capa de Telemetría (MLOps)
+Los modelos de Machine Learning sufren de "Model Decay" (degradación) cuando el mundo exterior cambia. 
+- Cada inferencia (predicción) que ocurre en la API registra métricas críticas (como el puntaje de confianza de YOLO o la longitud del texto) de forma asíncrona en un archivo `.csv`.
+- Mediante **EvidentlyAI**, ejecutamos análisis estadísticos (pruebas de deriva) comparando los datos en producción con un "Baseline" (histórico sano). Si los usuarios empiezan a subir imágenes de baja calidad y el modelo YOLO pierde confianza generalizada (*Data Drift*), el sistema alerta automáticamente para iniciar un re-entrenamiento.
 
 ## ✨ Características Principales
 
